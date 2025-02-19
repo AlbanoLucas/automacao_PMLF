@@ -13,8 +13,8 @@ def cadastro(dados_completos):
         departamento = dado.get('departamento')
         divisao = dado.get('divisao')
         matricula = dado.get('matricula')
-        atribuicoes = dado.get('atribuicoes')
-        login = dado.get('login')
+        atribuicoes = dado.get('atribuicoes', [])
+        login_name = dado.get('login')
         senha = dado.get('senha')
 
         driver, wait = webdriver_setup()
@@ -72,16 +72,16 @@ def cadastro(dados_completos):
         time.sleep(2)
         secretaria_element = driver.find_element(By.ID, 'unidadeOrganizacionalNivel1Id')
         secretaria_element.send_keys(secretaria)
-        time.sleep(1)
+        time.sleep(2)
         setor_element = driver.find_element(By.ID, 'unidadeOrganizacionalNivel2Id')
         setor_element.send_keys(setor)
-        time.sleep(1)
+        time.sleep(2)
         departamento_element = driver.find_element(By.ID, 'unidadeOrganizacionalNivel3Id')
         departamento_element.send_keys(departamento)
-        time.sleep(1)
+        time.sleep(2)
         divisao_element = driver.find_element(By.ID, 'unidadeOrganizacionalNivel4Id')
         divisao_element.send_keys(divisao)
-        time.sleep(1)
+        time.sleep(2)
         #Botao OK
         driver.find_element(By.XPATH, '//*[@id="auxiliar_footer"]/div[3]').click()   
 
@@ -90,7 +90,7 @@ def cadastro(dados_completos):
         
         #LOGIN NAME
         login_element = driver.find_element(By.ID, 'user')
-        login_element.send_keys(login)
+        login_element.send_keys(login_name)
         #SENHA
         senha_element = driver.find_element(By.ID, 'pass')
         senha_element.send_keys(senha)
@@ -100,16 +100,16 @@ def cadastro(dados_completos):
         matricula_element.send_keys(matricula)
 
         #ATRIBUICOES
-        atribuicoes_element = driver.find_element(By.ID, 'colocar-id')   ############################################
-        atribuicoes_element.send_keys(atribuicao for atribuicao in atribuicoes)
+        for atribuicao in atribuicoes:
+            atribuicoes_element = driver.find_element(By.ID, 'perfilId')
+            atribuicoes_element.send_keys(atribuicao)
+            driver.find_element(By.XPATH, '//*[@id="aba1"]/fieldset/table/tbody/tr[11]/td/fieldset/strong/input[1]').click()
+            time.sleep(1)
 
+        time.sleep(1000000)
         #Botao Salvar
-        driver.find_element(By.ID, 'colocar-id').click() ##################################
+        # driver.find_element(By.XPATH, '/html/body/table/tbody/tr[2]/td/table/tbody/tr/td[3]/form/table/tbody/tr[3]/td/input[2]').click() ##################################
 
-
-        
-    
-    time.sleep(15)
 
 
 dados_completos = carregar_dados()
