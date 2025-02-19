@@ -38,7 +38,9 @@ def carregar_dados():
         except:
             print("Erro ao gerar login name")
         senha_cad = cpf.replace('.', '').replace('-', '')[:6]
-        lista_atribuicoes = [atribuicao.strip() for atribuicao in atribuicoes.split(",")]
+        lista_atribuicoes = []
+        for palavra in atribuicoes.split(','):
+            lista_atribuicoes.append(palavra) 
 
         dados_formatados.append({'nome' : nome_completo,
                                 'login' : login_name, 
