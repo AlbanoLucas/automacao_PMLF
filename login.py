@@ -7,7 +7,6 @@ def cadastro(dados_completos):
     for dado in dados_completos:
 
         nome_completo = dado.get('nome')
-        cpf = dado.get('cpf')
         secretaria = dado.get('secretaria')
         setor = dado.get('setor')
         departamento = dado.get('departamento')
@@ -16,6 +15,7 @@ def cadastro(dados_completos):
         atribuicoes = dado.get('atribuicoes', [])
         login_name = dado.get('login')
         senha = dado.get('senha')
+        cargo = dado.get('cargo')
 
         driver, wait = webdriver_setup()
         url = "https://lfrh.metropolisweb.com.br/metropolisWEB/"
@@ -98,6 +98,10 @@ def cadastro(dados_completos):
         #MATRICULA
         matricula_element = driver.find_element(By.ID, 'numMatricula')
         matricula_element.send_keys(matricula)
+
+        #CARGO
+        cargo_element = driver.find_element(By.ID, 'cargoId')
+        cargo_element.send_keys(cargo)
 
         #ATRIBUICOES
         for atribuicao in atribuicoes:
