@@ -8,7 +8,6 @@ def carregar_dados():
     # Converter para lista de dicionários
     lista_dicionarios = df.to_dict(orient="records")
     dados_formatados = []
-    print(lista_dicionarios)
     for dados in lista_dicionarios:
         nome_completo = dados.get('nome')
         cpf = dados.get('cpf')
@@ -18,6 +17,7 @@ def carregar_dados():
         divisao = dados.get('divisao')
         matricula = dados.get('matricula')
         atribuicoes = dados.get('atribuicoes')
+        cargo = dados.get('cargo')
 
         try:
             #Tratamento do nome
@@ -38,9 +38,7 @@ def carregar_dados():
         except:
             print("Erro ao gerar login name")
         senha_cad = cpf.replace('.', '').replace('-', '')[:6]
-        lista_atribuicoes = []
-        for palavra in atribuicoes.split(','):
-            lista_atribuicoes.append(palavra) 
+        lista_atribuicoes = atribuicoes.split(',') 
 
         dados_formatados.append({'nome' : nome_completo,
                                 'login' : login_name, 
@@ -52,6 +50,6 @@ def carregar_dados():
                                 'divisao' : divisao,
                                 'matricula' : matricula,
                                 'atribuicoes' : lista_atribuicoes,
+                                'cargo' : cargo
                                 })
-    
     return(dados_formatados)
