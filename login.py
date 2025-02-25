@@ -3,14 +3,14 @@ from webdriver_setup import webdriver_setup
 from read_xls import carregar_dados
 
 
-def equiparar():
+def equiparar(nome_equiparar):
     driver, wait = webdriver_setup()
-    ###################################  EQUIPARAR  ###################################
+    ###################################  EQUIPARAR ATRIBUICOES ###################################
     #Botao Pesquisar
     wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="mostrarBotaoBusca"]/input'))).click()
 
     #Pesquisa Nome
-    wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="layerBusca"]/table/tbody/tr[3]/td[2]/input'))).send_keys("Albano Lucas Evangelista de Souza")
+    wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="layerBusca"]/table/tbody/tr[3]/td[2]/input'))).send_keys(nome_equiparar)
     wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="layerBusca"]/table/tbody/tr[7]/td[1]/input[1]'))).click()
 
     #Seleciona Usuario
@@ -36,6 +36,7 @@ def cadastro(dados_completos):
         login_name = dado.get('login')
         senha = dado.get('senha')
         cargo = dado.get('cargo')
+        nome_equiparar = dado.get('equiparar')
 
         driver, wait = webdriver_setup()
         url = "https://lfrh.metropolisweb.com.br/metropolisWEB/"
@@ -58,8 +59,10 @@ def cadastro(dados_completos):
         wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="abaSegurancaControle"]/td[2]'))).click()
         wait.until(EC.visibility_of_element_located((By.XPATH, '//*[@id="divSGnivelControle"]/table/tbody/tr[2]/td/a'))).click()
 
-        if  != None:
+        #SE DESEJA EQUIPARAR ATRIBUICOES
+        if nome_equiparar != None:
             atribuicoes = equiparar()
+
         #Botao Incluir
         includ_button = wait.until(EC.visibility_of_element_located((By.XPATH, '/html/body/table/tbody/tr[2]/td/table/tbody/tr/td[3]/form/table[2]/tbody/tr/td[1]/input[2]')))
         includ_button.click()
