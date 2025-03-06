@@ -1,37 +1,43 @@
-import pdfplumber
-import re
+import PyPDF2
+import spacy
 
-def extract_text_from_pdf(pdf_path):
-    """Extrai o texto do PDF."""
-    with pdfplumber.open(pdf_path) as pdf:
-        texto = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
-    return texto
+# Carregar o modelo de linguagem para o português
+nlp = spacy.load("pt_core_news_sm")
 
-def extract_appointments(text):
-    """Extrai nomeações de pessoas e seus cargos do texto."""
-    nomeacoes = []
-    
-    # Expressão regular para capturar nomeações
-    padrao = re.compile(r"(?P<cargo>.*?)\s*(Titular|Suplente):\s*(?P<nome>[A-Z][a-zA-Z\s]+)")
-    
-    for match in padrao.finditer(text):
-        cargo = match.group("cargo").strip()
-        nome = match.group("nome").strip()
-        nomeacoes.append((nome, cargo))
-    
-    return nomeacoes
+def extract_names_and_positions(pdf_file):
+    # Abrir o arquivo PDF
+    with open(pdf_file, 'rb') as f:
+        pdf = PyPDF2.PdfReader(f)
+        
+        # Extrair o texto do PDF
+        text = ''
+        for page in pdf.pages:
+            text += page.extract_text()
 
-def print_appointments(appointments):
-    """Imprime as nomeações formatadas."""
-    if appointments:
-        print("\nNomeações encontradas:")
-        for nome, cargo in appointments:
-            print(f"- {nome} – {cargo}")
-    else:
-        print("Nenhuma nomeação encontrada.")
+    # Análise de texto com spaCy
+    doc = nlp(text)
 
-if __name__ == "__main__":
-    pdf_path = "teste.pdf"  # Substitua pelo caminho correto do PDF
-    texto_extraido = extract_text_from_pdf(pdf_path)
-    nomeacoes = extract_appointments(texto_extraido)
-    print_appointments(nomeacoes)
+    # Encontrar entidades nomeadas (nomes de pessoas)
+    entities = [(entity.text, entity.label_) for entity in doc.ents if entity.label_ == "PERSON"]
+
+    # Encontrar frases que contenham informações de cargo
+    positions = []
+    for sent in doc.sents:
+        for token in sent:
+            if token.pos_ == "NOUN" and token.lemma_ in ["cargo", "função", "posição", "papel"]:
+                positions.append((sent.text, token.lemma_))
+
+    # Combina entidades nomeadas com informações de cargo
+    appointments = []
+    for entity, _ in entities:
+        for sent, _ in positions:
+            if entity in sent:
+                appointments.append((entity, sent))
+
+    return appointments
+
+# Exemplo de uso
+pdf_file = 'teste.pdf'
+appointments = extract_names_and_positions(pdf_file)
+for name, position in appointments:
+    print(f'{name} - {position}')
