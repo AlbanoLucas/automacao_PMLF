@@ -52,7 +52,7 @@ def criar_usuario_ldap(nome_usuario, sobrenome, login,  unidade_organizacional):
 
 # Exemplo de uso
 nome_usuario = 'Teste'
-sobrenome = 'Teste'
+sobrenome = 'Testes'
 login = 'tteste'
 unidade_organizacional = 'OU=DTIC,OU=SECAD,DC=calf,DC=local'
 
