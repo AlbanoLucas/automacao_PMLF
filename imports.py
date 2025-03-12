@@ -11,3 +11,7 @@ from selenium.webdriver.common.by import By
 import pandas as pd
 import time
 import pyautogui
+import PyPDF2
+import re
+import selenium
+import requests 
