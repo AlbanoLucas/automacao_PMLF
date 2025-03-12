@@ -51,7 +51,7 @@ def ler_pdf_e_processar(pdf_path):
     partes = re.split(r'\s*DECRETA\s*', texto.upper())
     
     # A primeira parte será a anterior ao primeiro "DECRETA"
-    partes = [partes[1]] + partes[1:]  # Inclui o texto anterior ao primeiro "DECRETA"
+    partes = [partes[0]] + partes[1:]  # Inclui o texto anterior ao primeiro "DECRETA"
     
     # Filtrando as partes que contêm as palavras "nomeia" ou "exonera"
     partes_filtradas = [parte for parte in partes if "NOMEIA" in parte or "EXONERA" in parte]
@@ -63,8 +63,8 @@ pdf_path = "teste.pdf"
 url = "https://laurodefreitas.ba.gov.br/2022/"
 
 
-acesso_pmlf(url, pdf_path)
-download_pdf(url, pdf_path)
+# acesso_pmlf(url, pdf_path)
+# download_pdf(url, pdf_path)
 # Chama a função e imprime as partes filtradas
 partes_filtradas = ler_pdf_e_processar(pdf_path)
 for i, parte in enumerate(partes_filtradas):
