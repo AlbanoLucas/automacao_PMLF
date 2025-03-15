@@ -24,3 +24,4 @@ import os
 import re
 import PyPDF2
 from datetime import datetime
+from playwright.sync_api import sync_playwright
