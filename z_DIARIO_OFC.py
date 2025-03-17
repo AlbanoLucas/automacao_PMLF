@@ -32,6 +32,7 @@ def nomeacoes_exoneracoes():
         
 def download_pdf(edicoes):
     chrome_options = Options()
+    chrome_options.add_argument('--headless')
     chrome_options.add_experimental_option('prefs', {
         'download.default_directory': PASTA_PDFS,
         'plugins.always_open_pdf_externally': True,
@@ -39,8 +40,8 @@ def download_pdf(edicoes):
         'download.directory_upgrade': True
     })
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-    data = datetime.now().strftime('%Y_%m_%d')
-    # data = '2025_03_14'
+    # data = datetime.now().strftime('%Y_%m_%d')
+    data = '2025_03_14'
     try:
         for edicao in edicoes:  
             pdf_url = f'https://diof.io.org.br/api/diario-oficial/download/{data}{edicao}004611.pdf'
@@ -53,14 +54,14 @@ def download_pdf(edicoes):
 
 
 def run(playwright):
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
     url = 'https://laurodefreitas.ba.gov.br/2022/'
     page.goto(url)
-    #seletor do botão que abre a nova aba
+    #seletor do botão que abre diario
     button_selector = 'body > header > div > div > div.header-top.black-bg.d-none.d-md-block > div > div > div > div.btn-group > a:nth-child(2) > button'
-    #seletor da tabela na nova aba
+    #seletor da tabela no diario
     table_selector = '#edicoesAnteriores > div.table-responsive > table > tbody'
     #seletor das células da coluna "Edição"
     edition_column_selector = '#edicoesAnteriores > div.table-responsive > table > tbody > tr > td:nth-child(2)'
@@ -73,8 +74,8 @@ def run(playwright):
     return edicoes
 
 def handle_popup(popup, table_selector, edition_column_selector):
-    data = datetime.now().strftime('%d/%m/%Y')
-    # data = '14/03/2025'
+    # data = datetime.now().strftime('%d/%m/%Y')
+    data = '14/03/2025'
     editions = []
     try:
         popup.wait_for_selector(table_selector)
