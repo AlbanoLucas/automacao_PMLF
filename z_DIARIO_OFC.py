@@ -2,7 +2,8 @@ from imports import *
 
 
 # Caminho da pasta com os PDFs
-PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
+# PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
+PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def ler_pdf_e_processar(pdf_path):
     """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA'."""
