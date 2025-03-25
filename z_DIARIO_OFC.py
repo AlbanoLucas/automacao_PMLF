@@ -5,6 +5,27 @@ from imports import *
 # PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
 PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
+def apagar_arquivos_pasta(PASTA_PDFS):
+    """
+    Apaga todos os arquivos de uma pasta especificada.
+    :param caminho_pasta: Caminho da pasta onde os arquivos serão excluídos.
+    """
+    if not os.path.exists(PASTA_PDFS):
+        print(f"A pasta '{PASTA_PDFS}' não existe.")
+        return
+    
+    for arquivo in os.listdir(PASTA_PDFS):
+        caminho_arquivo = os.path.join(PASTA_PDFS, arquivo)
+        try:
+            if os.path.isfile(caminho_arquivo):
+                os.remove(caminho_arquivo)
+            elif os.path.isdir(caminho_arquivo):
+                shutil.rmtree(caminho_arquivo)  # Remove pastas e seus conteúdos
+            print(f"Removido: {caminho_arquivo}")
+        except Exception as e:
+            print(f"Erro ao remover {caminho_arquivo}: {e}")
+
+
 def ler_pdf_e_processar(pdf_path):
     """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA'."""
     with open(pdf_path, "rb") as f:
@@ -42,7 +63,7 @@ def download_pdf(edicoes):
     })
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
     # data = datetime.now().strftime('%Y_%m_%d')
-    data = '2025_03_14'
+    data = '2025_03_22'
     try:
         for edicao in edicoes:  
             pdf_url = f'https://diof.io.org.br/api/diario-oficial/download/{data}{edicao}004611.pdf'
@@ -76,7 +97,7 @@ def run(playwright):
 
 def handle_popup(popup, table_selector, edition_column_selector):
     # data = datetime.now().strftime('%d/%m/%Y')
-    data = '14/03/2025'
+    data = '22/03/2025'
     editions = []
     try:
         popup.wait_for_selector(table_selector)
@@ -96,3 +117,4 @@ with sync_playwright() as playwright:
     edicoes = run(playwright)
     download_pdf(edicoes)  
     nomeacoes_exoneracoes()  
+    apagar_arquivos_pasta(PASTA_PDFS)
