@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import time
 import pyautogui
-import PyPDF2
+import pdfplumber
 import re
 import selenium
 import requests 
@@ -18,3 +18,7 @@ import os
 import csv
 import pandas as pd
 import shutil
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import dotenv
