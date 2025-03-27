@@ -27,14 +27,21 @@ def apagar_arquivos_pasta(PASTA_PDFS):
 
 
 def ler_pdf_e_processar(pdf_path):
-    """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA'."""
-    with open(pdf_path, "rb") as f:
-        reader = PyPDF2.PdfReader(f)
-        texto = ""
-        for page in reader.pages:
-            texto += page.extract_text() or ""
-    partes = re.split(r'\s*DECRETA\s*', texto.upper())
-    partes_filtradas = [parte for parte in partes if "NOMEIA" in parte or "EXONERA" in parte or "NOMEADO" in parte]
+    """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA' usando pdfplumber."""
+    texto = ""
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            texto_pagina = page.extract_text()
+            if texto_pagina:
+                texto += texto_pagina + "\n"
+
+    # Separar o texto a partir da palavra "DECRETA"
+    partes = re.split(r'\s*ART.\s*', texto.upper())
+
+    # Filtrar apenas partes que contenham palavras-chave
+    partes_filtradas = [parte for parte in partes if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"])]
+
     return partes_filtradas
 
 def nomeacoes_exoneracoes():
@@ -51,6 +58,7 @@ def nomeacoes_exoneracoes():
                     print("⚠️ Nenhuma nomeação ou exoneração encontrada.\n")
     else:
         print(f"⚠️ A pasta {PASTA_PDFS} não existe.")
+    return partes_filtradas
         
 def download_pdf(edicoes):
     chrome_options = Options()
@@ -113,8 +121,44 @@ def handle_popup(popup, table_selector, edition_column_selector):
         print(f"Erro ao extrair dados da pop-up: {e}")
     return editions
 
+def enviar_email(texto):
+    data = datetime.now().strftime('%d/%m/%Y')
+    # Configurações fixas
+    destinatario = "albanosouza0@gmail.com"
+    assunto = f"Resumo Diário Oficial {data}"
+    smtp_servidor = "smtp.gmail.com"  # Altere conforme necessário
+    smtp_porta = 587
+    email_remetente = "bot.diario.lf@gmail.com"  # Substitua pelo seu e-mail
+    senha = os.getenv("EMAIL_SENHA")
+
+    # Criando a mensagem
+    msg = MIMEMultipart()
+    msg["From"] = email_remetente
+    msg["To"] = destinatario
+    msg["Subject"] = assunto
+    html = "<html><body><h3>Lista de Nomeações</h3><ul>"
+    msg.attach(MIMEText("\n".join(texto), "plain"))
+
+
+    msg.attach(MIMEText(html, "html"))
+
+    try:
+        # Conectar ao servidor SMTP e enviar o e-mail
+        servidor = smtplib.SMTP(smtp_servidor, smtp_porta)
+        servidor.starttls()
+        servidor.login(email_remetente, senha)
+        servidor.sendmail(email_remetente, destinatario, msg.as_string())
+        servidor.quit()
+        print("E-mail enviado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao enviar e-mail: {e}")
+
+
+
 with sync_playwright() as playwright:
     edicoes = run(playwright)
     download_pdf(edicoes)  
-    nomeacoes_exoneracoes()  
+    texto = nomeacoes_exoneracoes()  
+    enviar_email(texto)
     apagar_arquivos_pasta(PASTA_PDFS)
+    
