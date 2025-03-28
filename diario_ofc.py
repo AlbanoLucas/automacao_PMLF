@@ -175,10 +175,11 @@ def enviar_email(texto):
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
-with sync_playwright() as playwright:
-    edicoes = run(playwright)
-    download_pdf(edicoes)  
-    texto = nomeacoes_exoneracoes()  
-    enviar_email(texto)
-    apagar_arquivos_pasta(PASTA_PDFS)
+def run_full_process():
+    with sync_playwright() as playwright:
+        edicoes = run(playwright)
+        download_pdf(edicoes)  
+        texto = nomeacoes_exoneracoes()  
+        enviar_email(texto)
+        apagar_arquivos_pasta(PASTA_PDFS)
     
