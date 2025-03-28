@@ -2,8 +2,8 @@ from imports import *
 
 
 # Caminho da pasta com os PDFs
-# PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
-PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
+PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
+# PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def apagar_arquivos_pasta(PASTA_PDFS):
     """
@@ -25,32 +25,49 @@ def apagar_arquivos_pasta(PASTA_PDFS):
         except Exception as e:
             print(f"Erro ao remover {caminho_arquivo}: {e}")
 
-
 def ler_pdf_e_processar(pdf_path):
-    """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA' usando pdfplumber."""
+    """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA' e adiciona tabelas, se existirem."""
     texto = ""
+    tabelas_por_pagina = {}
 
     with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
+        for i, page in enumerate(pdf.pages):
             texto_pagina = page.extract_text()
             if texto_pagina:
                 texto += texto_pagina + "\n"
+            
+            # Extrair tabelas, se houver
+            tabelas = page.extract_tables()
+            if tabelas:
+                tabelas_por_pagina[i] = tabelas  # Armazena as tabelas da página
 
-    # Separar o texto a partir da palavra "DECRETA"
+    # Separar o texto a partir da palavra "ART."
     partes = re.split(r'\s*ART.\s*', texto.upper())
 
     # Filtrar apenas partes que contenham palavras-chave
-    partes_filtradas = [parte for parte in partes if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"])]
+    partes_filtradas = []
+    for i, parte in enumerate(partes):
+        if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"]):
+            # Verifica se há tabelas na página correspondente e adiciona ao texto
+            if i in tabelas_por_pagina:
+                parte += "\n\n[TABELA ENCONTRADA]\n"
+                for tabela in tabelas_por_pagina[i]:
+                    for linha in tabela:
+                        parte += " | ".join(linha) + "\n"
+
+            partes_filtradas.append(parte)
 
     return partes_filtradas
 
 def nomeacoes_exoneracoes():
+    """Processa todos os PDFs na pasta e exibe as partes filtradas com tabelas."""
     if os.path.exists(PASTA_PDFS):
         for arquivo in os.listdir(PASTA_PDFS):
             if arquivo.lower().endswith('.pdf'):
                 caminho_pdf = os.path.join(PASTA_PDFS, arquivo)
                 print(f"\n🔍 Processando: {arquivo}")
                 partes_filtradas = ler_pdf_e_processar(caminho_pdf)
+                
                 if partes_filtradas:
                     for i, parte in enumerate(partes_filtradas):
                         print(f"\n📜 Parte {i+1}:\n{parte}\n---")
@@ -70,8 +87,11 @@ def download_pdf(edicoes):
         'download.directory_upgrade': True
     })
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-    # data = datetime.now().strftime('%Y_%m_%d')
-    data = '2025_03_22'
+    data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
+    dia = datetime.today().strftime("%A")
+    if dia == 'Monday':
+        data = datetime.now() - timedelta(days=3)
+    
     try:
         for edicao in edicoes:  
             pdf_url = f'https://diof.io.org.br/api/diario-oficial/download/{data}{edicao}004611.pdf'
@@ -81,7 +101,6 @@ def download_pdf(edicoes):
     finally:
         time.sleep(20)
         driver.quit()
-
 
 def run(playwright):
     browser = playwright.chromium.launch(headless=True)
@@ -98,14 +117,17 @@ def run(playwright):
     edicoes = []
     page.on('popup', lambda popup: edicoes.extend(handle_popup(popup, table_selector, edition_column_selector)))
     page.click(button_selector)
-    page.wait_for_timeout(5000)  
+    page.wait_for_timeout(50000)  
     page.wait_for_load_state('domcontentloaded')
     browser.close()
     return edicoes
 
 def handle_popup(popup, table_selector, edition_column_selector):
-    # data = datetime.now().strftime('%d/%m/%Y')
-    data = '22/03/2025'
+    data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+    dia = datetime.today().strftime("%A")
+    if dia == 'Monday':
+        data = datetime.now() - timedelta(days=3)
+ 
     editions = []
     try:
         popup.wait_for_selector(table_selector)
@@ -136,11 +158,10 @@ def enviar_email(texto):
     msg["From"] = email_remetente
     msg["To"] = destinatario
     msg["Subject"] = assunto
-    html = "<html><body><h3>Lista de Nomeações</h3><ul>"
     msg.attach(MIMEText("\n".join(texto), "plain"))
 
 
-    msg.attach(MIMEText(html, "html"))
+    
 
     try:
         # Conectar ao servidor SMTP e enviar o e-mail
@@ -152,8 +173,6 @@ def enviar_email(texto):
         print("E-mail enviado com sucesso!")
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
-
-
 
 with sync_playwright() as playwright:
     edicoes = run(playwright)
