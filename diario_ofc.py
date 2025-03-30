@@ -1,9 +1,9 @@
 from imports import *
-
+from celery_config import app
 
 # Caminho da pasta com os PDFs
-# PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
-PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
+PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
+# PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def apagar_arquivos_pasta(PASTA_PDFS):
     #Apaga todos os arquivos de uma pasta especificada.
@@ -85,10 +85,11 @@ def download_pdf(edicoes):
         'download.directory_upgrade': True
     })
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-    data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
-    dia = datetime.today().strftime("%A")
-    if dia == 'Monday':
-        data = datetime.now() - timedelta(days=3)
+    # data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
+    # dia = datetime.today().strftime("%A")
+    # if dia == 'Monday':
+    #     data = datetime.now() - timedelta(days=3)
+    data = '2025_03_28'
     
     try:
         for edicao in edicoes:  
@@ -123,10 +124,11 @@ def run(playwright):
 
 def handle_popup(popup, table_selector, edition_column_selector):
     # Tratando poup-up app angular
-    data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
-    dia = datetime.today().strftime("%A")
-    if dia == 'Monday':
-        data = datetime.now() - timedelta(days=3)
+    # data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+    # dia = datetime.today().strftime("%A")
+    # if dia == 'Monday':
+    #     data = datetime.now() - timedelta(days=3)
+    data = '28/03/2025'
  
     editions = []
     try:
@@ -175,6 +177,7 @@ def enviar_email(texto):
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
+@app.task
 def run_full_process():
     with sync_playwright() as playwright:
         edicoes = run(playwright)

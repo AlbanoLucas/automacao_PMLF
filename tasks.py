@@ -1,8 +1,8 @@
-from celery import Celery
+from celery_config import Celery
 from diario_ofc import run_full_process  # Substitua pelo nome correto do seu script principal
 
 app = Celery('tasks')
-app.config_from_object('celeryconfig')
+app.config_from_object('celery_config')
 
 @app.task
 def run_my_script():
