@@ -2,7 +2,7 @@ from imports import *
 from celery_config import app
 
 # Caminho da pasta com os PDFs
-PASTA_PDFS = r"C:\Users\Albano Souza\Desktop\diario_ofc"
+PASTA_PDFS = r"/home/albano/Documentos/diario_ofc"
 # PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def apagar_arquivos_pasta(PASTA_PDFS):
@@ -77,7 +77,7 @@ def nomeacoes_exoneracoes():
         
 def download_pdf(edicoes):
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
+    # chrome_options.add_argument('--headless')
     chrome_options.add_experimental_option('prefs', {
         'download.default_directory': PASTA_PDFS,
         'plugins.always_open_pdf_externally': True,
@@ -103,11 +103,11 @@ def download_pdf(edicoes):
 
 def run(playwright):
     # Tratando app angular
-    browser = playwright.chromium.launch(headless=True)
+    browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
     page = context.new_page()
     url = 'https://laurodefreitas.ba.gov.br/2022/'
-    page.goto(url)
+    page.goto(url, wait_until='domcontentloaded')
     #seletor do botão que abre diario
     button_selector = 'body > header > div > div > div.header-top.black-bg.d-none.d-md-block > div > div > div > div.btn-group > a:nth-child(2) > button'
     #seletor da tabela no diario
@@ -124,10 +124,10 @@ def run(playwright):
 
 def handle_popup(popup, table_selector, edition_column_selector):
     # Tratando poup-up app angular
-    # data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
-    # dia = datetime.today().strftime("%A")
-    # if dia == 'Monday':
-    #     data = datetime.now() - timedelta(days=3)
+    data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+    dia = datetime.today().strftime("%A")
+    if dia == 'Monday':
+        data = datetime.now() - timedelta(days=3)
     data = '28/03/2025'
  
     editions = []
@@ -185,4 +185,4 @@ def run_full_process():
         texto = nomeacoes_exoneracoes()  
         enviar_email(texto)
         apagar_arquivos_pasta(PASTA_PDFS)
-    
+        
