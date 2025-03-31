@@ -50,7 +50,7 @@ def ler_pdf_e_processar(pdf_path):
                 parte += "\n\n[TABELA ENCONTRADA]\n"
                 for tabela in tabelas_por_pagina[i]:
                     for linha in tabela:
-                        parte += " | ".join(linha) + "\n"
+                        parte += " | ".join(str(item) if item is not None else "" for item in linha) + "\n"
 
             partes_filtradas.append(parte)
 
@@ -77,7 +77,7 @@ def nomeacoes_exoneracoes():
         
 def download_pdf(edicoes):
     chrome_options = Options()
-    # chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--headless')
     chrome_options.add_experimental_option('prefs', {
         'download.default_directory': PASTA_PDFS,
         'plugins.always_open_pdf_externally': True,
@@ -85,11 +85,11 @@ def download_pdf(edicoes):
         'download.directory_upgrade': True
     })
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
-    # data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
-    # dia = datetime.today().strftime("%A")
-    # if dia == 'Monday':
-    #     data = datetime.now() - timedelta(days=3)
-    data = '2025_03_28'
+    data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
+    dia = datetime.today().strftime("%A")
+    if dia == 'Monday':
+        data = (datetime.now() - timedelta(days=3)).strftime('%Y_%m_%d')
+    # data = '2025_03_28'
     
     try:
         for edicao in edicoes:  
@@ -103,11 +103,11 @@ def download_pdf(edicoes):
 
 def run(playwright):
     # Tratando app angular
-    browser = playwright.chromium.launch(headless=False)
+    browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
     url = 'https://laurodefreitas.ba.gov.br/2022/'
-    page.goto(url, wait_until='domcontentloaded')
+    page.goto(url)
     #seletor do botão que abre diario
     button_selector = 'body > header > div > div > div.header-top.black-bg.d-none.d-md-block > div > div > div > div.btn-group > a:nth-child(2) > button'
     #seletor da tabela no diario
@@ -127,8 +127,8 @@ def handle_popup(popup, table_selector, edition_column_selector):
     data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
     dia = datetime.today().strftime("%A")
     if dia == 'Monday':
-        data = datetime.now() - timedelta(days=3)
-    data = '28/03/2025'
+        data = (datetime.now() - timedelta(days=3)).strftime('%d/%m/%Y')
+    # data = '28/03/2025'
  
     editions = []
     try:
@@ -146,7 +146,11 @@ def handle_popup(popup, table_selector, edition_column_selector):
     return editions
 
 def enviar_email(texto):
-    data = datetime.now().strftime('%d/%m/%Y')
+    data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
+    dia = datetime.today().strftime("%A")
+    if dia == 'Monday':
+        data = (datetime.now() - timedelta(days=3)).strftime('%d/%m/%Y')
+
     # Configurações do e-mail
     destinatario = "albanosouza0@gmail.com"
     assunto = f"Resumo Diário Oficial {data}"
