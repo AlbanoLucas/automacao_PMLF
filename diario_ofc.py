@@ -2,8 +2,8 @@ from imports import *
 from celery_config import app
 
 # Caminho da pasta com os PDFs
-PASTA_PDFS = r"/home/albano/Documentos/diario_ofc"
-# PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
+# PASTA_PDFS = r"/home/albano/Documentos/diario_ofc"
+PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def apagar_arquivos_pasta(PASTA_PDFS):
     #Apaga todos os arquivos de uma pasta especificada.
