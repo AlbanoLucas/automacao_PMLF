@@ -13,6 +13,7 @@ app.conf.update(
 app.conf.beat_schedule = {
     'executar-tarefa': {
         'task': 'tasks.run_my_script',
-        'schedule': crontab(minute='*/1'),  # Executa a cada 5 minutos
+        'schedule': crontab(minute='*/30'),  # Executa a cada 5 minutos
+        # "schedule": crontab(hour=8, minute=30, day_of_week="1-5"),  # Segunda a Sexta
     },
 }
