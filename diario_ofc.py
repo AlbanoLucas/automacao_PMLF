@@ -22,58 +22,54 @@ def apagar_arquivos_pasta(PASTA_PDFS):
         except Exception as e:
             print(f"Erro ao remover {caminho_arquivo}: {e}")
 
-def ler_pdf_e_processar(pdf_path):
-    """Lê um PDF e filtra partes que contenham 'NOMEIA' ou 'EXONERA' e adiciona tabelas, se existirem."""
-    texto = ""
-    tabelas_por_pagina = {}
+def extrair_nomeacoes_exoneracoes():
+    """Extrai partes de PDFs """
+    todas_partes_filtradas = []
 
-    with pdfplumber.open(pdf_path) as pdf:
-        for i, page in enumerate(pdf.pages):
-            texto_pagina = page.extract_text()
-            if texto_pagina:
-                texto += texto_pagina + "\n"
-            
-            # Extrair tabelas, se houver
-            tabelas = page.extract_tables()
-            if tabelas:
-                tabelas_por_pagina[i] = tabelas  # Armazena as tabelas da página
-
-    # Separar o texto a partir da palavra "ART."
-    partes = re.split(r'\s*ART.\s*', texto.upper())
-
-    # Filtrar apenas partes que contenham palavras-chave
-    partes_filtradas = []
-    for i, parte in enumerate(partes):
-        if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"]):
-            # Verifica se há tabelas no pdf
-            if i in tabelas_por_pagina:
-                parte += "\n\n[TABELA ENCONTRADA]\n"
-                for tabela in tabelas_por_pagina[i]:
-                    for linha in tabela:
-                        parte += " | ".join(str(item) if item is not None else "" for item in linha) + "\n"
-
-            partes_filtradas.append(parte)
-
-    return partes_filtradas
-
-def nomeacoes_exoneracoes():
-    #  Processa todos os PDFs na pasta e exibe as partes filtradas
-    if os.path.exists(PASTA_PDFS):
-        for arquivo in os.listdir(PASTA_PDFS):
-            if arquivo.lower().endswith('.pdf'):
-                caminho_pdf = os.path.join(PASTA_PDFS, arquivo)
-                print(f"\n🔍 Processando: {arquivo}")
-                partes_filtradas = ler_pdf_e_processar(caminho_pdf)
-                
-                if partes_filtradas:
-                    for i, parte in enumerate(partes_filtradas):
-                        print(f"\n📜 Parte {i+1}:\n{parte}\n---")
-                else:
-                    print("⚠️ Nenhuma nomeação ou exoneração encontrada.\n")
-                    partes_filtradas = None
-    else:
+    if not os.path.exists(PASTA_PDFS):
         print(f"⚠️ A pasta {PASTA_PDFS} não existe.")
-    return partes_filtradas
+        return todas_partes_filtradas
+
+    for arquivo in os.listdir(PASTA_PDFS):
+        if not arquivo.lower().endswith('.pdf'):
+            continue
+
+        caminho_pdf = os.path.join(PASTA_PDFS, arquivo)
+        print(f"\n🔍 Processando: {arquivo}")
+
+        texto = ""
+
+        with pdfplumber.open(caminho_pdf) as pdf:
+            for page in pdf.pages:
+                texto_pagina = page.extract_text()
+                if texto_pagina:
+                    texto += texto_pagina + "\n"
+
+        texto_upper = texto.upper()
+        partes = re.split(r'\s*ART.\s*', texto_upper)
+
+        # Extrai trecho entre "ANEXO ÚNICO" e "RETIFICAÇÃO", sem incluir "RETIFICAÇÃO"
+        trecho_anexo_unico = ""
+        match_anexo = re.search(r"(ANEXO ÚNICO – DECRETO.*?)(?=RETIFICAÇÃO)", texto_upper, flags=re.DOTALL)
+        if match_anexo:
+            trecho_anexo_unico = match_anexo.group(1).strip()
+
+        for parte in partes:
+            if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"]):
+                if any(skip_kw in parte for skip_kw in ["REGULARIZAR SITUAÇÃO DE ACÚMULO DE CARGO", "RETIFICA"]):
+                    continue
+
+                todas_partes_filtradas.append(parte)
+                print(f"\n📜 Parte {len(todas_partes_filtradas)}:\n{parte}\n---")
+
+                if "ANEXO ÚNICO" in parte and trecho_anexo_unico:
+                    todas_partes_filtradas.append(trecho_anexo_unico)
+                    print(f"\n📎 Anexo Único Adicionado:\n{trecho_anexo_unico}\n---")
+
+        if not todas_partes_filtradas:
+            print("⚠️ Nenhuma nomeação ou exoneração encontrada.\n")
+        
+    return todas_partes_filtradas
         
 def download_pdf(edicoes):
     chrome_options = Options()
@@ -168,7 +164,7 @@ def enviar_email(texto):
     if texto is None:
         msg.attach(MIMEText("Nenhuma nomeação ou exoneração encontrado.", "plain"))
     else:
-        msg.attach(MIMEText("\n".join(texto), "plain"))
+        msg.attach(MIMEText("\n\n---\n\n".join(texto), "plain"))
 
     try:
         # Conectar ao servidor SMTP e enviar o e-mail
@@ -181,12 +177,12 @@ def enviar_email(texto):
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
-@app.task
-def run_full_process():
-    with sync_playwright() as playwright:
-        edicoes = run(playwright)
-        download_pdf(edicoes)  
-        texto = nomeacoes_exoneracoes()  
-        enviar_email(texto)
-        apagar_arquivos_pasta(PASTA_PDFS)
+# @app.task
+# def run_full_process():
+with sync_playwright() as playwright:
+    # edicoes = run(playwright)
+    # download_pdf(edicoes)  
+    texto = extrair_nomeacoes_exoneracoes()  
+    enviar_email(texto)
+    # apagar_arquivos_pasta(PASTA_PDFS)
         
