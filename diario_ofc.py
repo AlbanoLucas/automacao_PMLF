@@ -85,7 +85,7 @@ def download_pdf(edicoes):
     dia = datetime.today().strftime("%A")
     if dia == 'Monday':
         data = (datetime.now() - timedelta(days=3)).strftime('%Y_%m_%d')
-    # data = '2025_03_28'
+    # data = '2025_04_08'
     
     try:
         for edicao in edicoes:  
@@ -98,7 +98,7 @@ def download_pdf(edicoes):
         driver.quit()
 
 def run(playwright):
-    # Tratando app angular
+    """Tratando app angular"""
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
@@ -119,12 +119,12 @@ def run(playwright):
     return edicoes
 
 def handle_popup(popup, table_selector, edition_column_selector):
-    # Tratando poup-up app angular
+    """Tratando poup-up app angular"""
     data = (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y')
     dia = datetime.today().strftime("%A")
     if dia == 'Monday':
         data = (datetime.now() - timedelta(days=3)).strftime('%d/%m/%Y')
-    # data = '28/03/2025'
+    # data = '08/04/2025'
  
     editions = []
     try:
@@ -146,10 +146,11 @@ def enviar_email(texto):
     dia = datetime.today().strftime("%A")
     if dia == 'Monday':
         data = (datetime.now() - timedelta(days=3)).strftime('%d/%m/%Y')
+    # data = '08/04/2025'
 
     # Configurações do e-mail
-    destinatario = "albanosouza0@gmail.com"
-    # destinatario = "dtic-secad@laurodefreitas.ba.gov.br"
+    # destinatario = "albanosouza0@gmail.com"
+    destinatario = "dtic-secad@laurodefreitas.ba.gov.br"
     assunto = f"Resumo Diário Oficial {data}"
     smtp_servidor = "smtp.gmail.com"  # Altere conforme necessário
     smtp_porta = 587
@@ -181,9 +182,9 @@ def enviar_email(texto):
 # @app.task
 # def run_full_process():
 with sync_playwright() as playwright:
-    # edicoes = run(playwright)
-    # download_pdf(edicoes)  
+    edicoes = run(playwright)
+    download_pdf(edicoes)  
     texto = extrair_nomeacoes_exoneracoes()  
     enviar_email(texto)
-    # apagar_arquivos_pasta(PASTA_PDFS)
+    apagar_arquivos_pasta(PASTA_PDFS)
         
