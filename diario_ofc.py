@@ -2,8 +2,8 @@ from imports import *
 from celery_config import app
 
 # Caminho da pasta com os PDFs
-PASTA_PDFS = r"/home/albano/Documentos/diario_ofc"
-# PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
+# PASTA_PDFS = r"/home/albano/Documentos/diario_ofc"
+PASTA_PDFS = r"C:\Users\aesouza\Desktop\diario_ofc"
 
 def apagar_arquivos_pasta(PASTA_PDFS):
     #Apaga todos os arquivos de uma pasta especificada.
@@ -55,7 +55,7 @@ def extrair_nomeacoes_exoneracoes():
             trecho_anexo_unico = match_anexo.group(1).strip()
 
         for parte in partes:
-            if any(kw in parte for kw in ["NOMEIA", "EXONERA", "NOMEADO"]):
+            if any(kw in parte for kw in ["NOMEIA", "NOMEAÇÃO", "EXONERA", "NOMEADO", "NOMEADA", "EXONERADO", "EXONERADA"]):
                 if any(skip_kw in parte for skip_kw in ["REGULARIZAR SITUAÇÃO DE ACÚMULO DE CARGO", "RETIFICA"]):
                     continue
 
@@ -149,6 +149,7 @@ def enviar_email(texto):
 
     # Configurações do e-mail
     destinatario = "albanosouza0@gmail.com"
+    # destinatario = "dtic-secad@laurodefreitas.ba.gov.br"
     assunto = f"Resumo Diário Oficial {data}"
     smtp_servidor = "smtp.gmail.com"  # Altere conforme necessário
     smtp_porta = 587
@@ -180,8 +181,8 @@ def enviar_email(texto):
 # @app.task
 # def run_full_process():
 with sync_playwright() as playwright:
-    edicoes = run(playwright)
-    download_pdf(edicoes)  
+    # edicoes = run(playwright)
+    # download_pdf(edicoes)  
     texto = extrair_nomeacoes_exoneracoes()  
     enviar_email(texto)
     # apagar_arquivos_pasta(PASTA_PDFS)
