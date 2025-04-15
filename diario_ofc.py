@@ -144,11 +144,11 @@ def enviar_email(conteudo):
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
-# @app.task
-# def run_full_process():
-with sync_playwright() as playwright:
-    # edicoes = run(playwright)
-    # download_pdf(edicoes)
-    resultados = processar_diarios_com_llm()
-    enviar_email(resultados)
-    # apagar_arquivos_pasta(PASTA_PDFS)
+@app.task
+def run_full_process():
+    with sync_playwright() as playwright:
+        edicoes = run(playwright)
+        download_pdf(edicoes)
+        resultados = processar_diarios_com_llm()
+        enviar_email(resultados)
+        apagar_arquivos_pasta(PASTA_PDFS)
