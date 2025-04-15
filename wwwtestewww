@@ -1,0 +1,65 @@
+from imports import *
+from celery_config import app
+from openai import OpenAI
+
+PASTA_PDFS = r"C:\\Users\\aesouza\\Desktop\\projetos_engenharia_ambiental"
+
+client = OpenAI(
+    api_key="ollama",
+    base_url="http://localhost:11434/v1"
+)
+
+def consultar_llm(prompt):
+    """
+    Função para interagir com o modelo LLaMA e obter respostas baseadas no conteúdo do PDF.
+    O prompt é ajustado para que o modelo se comporte como um especialista em projetos de engenharia ambiental.
+    """
+    try:
+        resposta = client.chat.completions.create(
+            model="llama3:8b",
+            messages=[
+                {"role": "system", "content": "Você é um especialista em engenharia ambiental, com experiência em projetos e regulamentações. Extraia dados importantes e resuma informações técnicas dos documentos."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
+        return resposta.choices[0].message.content
+    except Exception as e:
+        return f"Erro ao consultar LLM local: {e}"
+
+def extrair_texto_pdf(caminho_pdf):
+    """
+    Função para extrair o texto do PDF usando pdfplumber.
+    Retorna o texto extraído de todas as páginas do PDF.
+    """
+    texto = ""
+    with pdfplumber.open(caminho_pdf) as pdf:
+        for page in pdf.pages:
+            pagina = page.extract_text()
+            if pagina:
+                texto += pagina + "\n"
+    return texto
+
+def processar_projetos_com_llm():
+    """
+    Função para processar os PDFs da pasta especificada. Para cada PDF, extrai-se o texto
+    e consulta-se o LLaMA para obter um resumo técnico com dados importantes de projetos de engenharia ambiental.
+    """
+    resultados = []
+    for arquivo in os.listdir(PASTA_PDFS):
+        if arquivo.lower().endswith(".pdf"):
+            caminho = os.path.join(PASTA_PDFS, arquivo)
+            print(f"🧾 Processando: {arquivo}")
+            texto = extrair_texto_pdf(caminho)
+            
+            # Consultando o LLaMA com o texto extraído do PDF
+            prompt = f"Leia o seguinte conteúdo de um projeto de engenharia ambiental e forneça um resumo técnico com todos os dados importantes:\n\n{texto}"
+            resposta = consultar_llm(prompt)
+            
+            print(f"✅ Resultado:\n{resposta}")
+            resultados.append(f"📄 {arquivo}\n{resposta}")
+    return resultados
+
+# Execução do processamento
+resultados = processar_projetos_com_llm()
+print("Processamento concluído.\n", resultados)
