@@ -24,7 +24,6 @@ def consultar_llm(prompt):
     except Exception as e:
         return f"Erro ao consultar LLM local: {e}"
 
-
 def apagar_arquivos_pasta(PASTA_PDFS):
     if not os.path.exists(PASTA_PDFS):
         print(f"A pasta '{PASTA_PDFS}' não existe.")
@@ -128,7 +127,7 @@ def enviar_email(conteudo):
     assunto = f"Nomeações e Exonerações - Diário Oficial {data}"
     msg = MIMEMultipart()
     msg["From"] = "bot.diario.lf@gmail.com"
-    msg["To"] = "albanolucas23@gmail.com"
+    msg["To"] = "dtic-secad@laurodefreitas.ba.gov.br"
     msg["Subject"] = assunto
 
     corpo = "\n\n---\n\n".join(conteudo) if conteudo else "Nenhuma nomeação ou exoneração encontrada."
