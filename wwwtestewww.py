@@ -40,7 +40,7 @@ def consultar_llm(texto_completo):
                 {"role": "system", "content": PROMPT_SISTEMA},
                 {"role": "user", "content": texto_completo}
             ],
-            temperature=0.2
+            temperature=0.0
         )
         return resposta.choices[0].message.content
     except Exception as e:
