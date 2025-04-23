@@ -220,9 +220,9 @@ def enviar_email(conteudo):
 # @app.task
 # def run_full_process():
 with sync_playwright() as playwright:
-    # edicoes = run(playwright)
-    # print(f"🗂️ Edições encontradas: {edicoes}")
-    # download_pdf_requests(edicoes)
+    edicoes = run(playwright)
+    print(f"🗂️ Edições encontradas: {edicoes}")
+    download_pdf_requests(edicoes, PASTA_PDFS)
     resultados = processar_diarios_com_llm()
     enviar_email(resultados)
     # apagar_arquivos_pasta(PASTA_PDFS)
