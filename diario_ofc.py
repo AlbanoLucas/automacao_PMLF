@@ -1,9 +1,8 @@
 from imports import *
-from celery_config import app
-from openai import OpenAI
+
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 PASTA_PDFS = r"C:\\Users\\aesouza\\Desktop\\diario_ofc"
-
 
 client = OpenAI(
     api_key="ollama",
@@ -14,15 +13,19 @@ def consultar_llm(prompt):
     try:
         resposta = client.chat.completions.create(
             model="llama3.1:8b",
-            messages=[ 
-                {"role": "system", "content": 
-                    "Você é um especialista em analisar textos do Diário Oficial. Sua tarefa é extrair os nomes das pessoas, seus cargos e se elas foram nomeadas, exoneradas ou teve retificação em seus cargos ou nomes, caso haja retificação não identificar como nomeação ou exoneração e sim como retificação. /n"
-                    "Os atos administrativos, como 'nomeação', 'exoneração' ou 'retificação', podem estar representados através de sinonimos. /n"
-                    "Você deve ignorar qualquer outro conteúdo que não se refira diretamente a esses atos administrativos. "                    
+            messages=[
+                {"role": "system", "content":
+                    "Você é um especialista em atos administrativos do Diário Oficial.\n"
+                    "Sua tarefa é identificar exclusivamente:\n"
+                    "- Nomeações (ex: nomeado, nomeada, designado, admitido)\n"
+                    "- Exonerações (ex: exonerado, exonerada, dispensado, desligado)\n"
+                    "- Retificações (ex: corrigido, alterado, ajustado)\n\n"
+                    "Ignore qualquer conteúdo que não esteja claramente relacionado a esses atos.\n"
+                    "Para cada ocorrência encontrada, retorne no formato:\n"
+                    "Nome: [NOME COMPLETO] - Secretaria: [SECRETARIA] - Ato: [NOMEAÇÃO | EXONERAÇÃO | RETIFICAÇÃO]\n"
+                    "Caso não haja nenhum ato, diga explicitamente: 'Nenhum ato identificado neste trecho.'"
                 },
-                {"role": "user", "content": 
-                    "Texto para análise:\n"
-                    f"{prompt}"} 
+                {"role": "user", "content": f"Texto para análise:\n{prompt}"}
             ],
             temperature=0.0,
         )
@@ -30,12 +33,12 @@ def consultar_llm(prompt):
     except Exception as e:
         return f"Erro ao consultar LLM local: {e}"
 
-def apagar_arquivos_pasta(PASTA_PDFS):
-    if not os.path.exists(PASTA_PDFS):
-        print(f"A pasta '{PASTA_PDFS}' não existe.")
+def apagar_arquivos_pasta(pasta):
+    if not os.path.exists(pasta):
+        print(f"A pasta '{pasta}' não existe.")
         return
-    for arquivo in os.listdir(PASTA_PDFS):
-        caminho = os.path.join(PASTA_PDFS, arquivo)
+    for arquivo in os.listdir(pasta):
+        caminho = os.path.join(pasta, arquivo)
         try:
             if os.path.isfile(caminho):
                 os.remove(caminho)
@@ -46,74 +49,38 @@ def apagar_arquivos_pasta(PASTA_PDFS):
 
 def extrair_texto_pdf(caminho_pdf):
     texto = ""
-
-    def reconstruir_tabela_por_layout(words, tolerancia_coluna=10):
-        if not words:
-            return ""
-
-        # Agrupa palavras por linha (posição y)
-        linhas_dict = {}
-        for word in words:
-            y = round(word['top'], 1)
-            if y not in linhas_dict:
-                linhas_dict[y] = []
-            linhas_dict[y].append(word)
-
-        texto_linhas = []
-        for y in sorted(linhas_dict.keys()):
-            linha = linhas_dict[y]
-            linha_ordenada = sorted(linha, key=lambda w: w["x0"])
-            
-            # Agrupa por colunas aproximadas (com base em distância entre palavras)
-            colunas = []
-            coluna_atual = [linha_ordenada[0]['text']]
-            for i in range(1, len(linha_ordenada)):
-                dist = linha_ordenada[i]['x0'] - linha_ordenada[i-1]['x1']
-                if dist > tolerancia_coluna:
-                    colunas.append(" ".join(coluna_atual))
-                    coluna_atual = [linha_ordenada[i]['text']]
-                else:
-                    coluna_atual.append(linha_ordenada[i]['text'])
-            colunas.append(" ".join(coluna_atual))
-
-            texto_linhas.append("\t".join(colunas))
-        
-        return "\n".join(texto_linhas)
-
     with pdfplumber.open(caminho_pdf) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
-            try:
-                tabelas = page.extract_tables()
-                if tabelas:
-                    for tabela in tabelas:
-                        for linha in tabela:
-                            if linha:
-                                texto += "\t".join(col.strip() if col else "" for col in linha) + "\n"
-                else:
-                    words = page.extract_words()
-                    if words:
-                        texto += reconstruir_tabela_por_layout(words) + "\n"
-                    else:
-                        pagina = page.extract_text()
-                        if pagina:
-                            texto += pagina + "\n"
-            except Exception as e:
-                print(f"⚠️ Erro na página {page_num} do PDF '{caminho_pdf}': {e}")
+        for page in pdf.pages:
+            texto += page.extract_text() or ""
+            texto += "\n"
     return texto
 
-
+def dividir_por_artigos_relevantes(texto):
+    artigos = re.split(r"\n?Art\.\s*\d+[\u00bao]?[.\s]", texto)
+    artigos_filtrados = []
+    for artigo in artigos:
+        trecho = artigo.strip()
+        if any(palavra in trecho.lower() for palavra in ["exoner", "nomea", "retific", "designad", "dispensad", "corrigido", "ajustado"]):
+            artigos_filtrados.append("Art. " + trecho)
+    return artigos_filtrados
 
 def processar_diarios_com_llm():
     resultados = []
     for arquivo in os.listdir(PASTA_PDFS):
         if arquivo.lower().endswith(".pdf"):
             caminho = os.path.join(PASTA_PDFS, arquivo)
-            print(f"🧾 Processando: {arquivo}")
+            print(f"Processando: {arquivo}")
             texto = extrair_texto_pdf(caminho)
-            resposta = consultar_llm(f"Extraia as nomeações e exonerações deste conteúdo:\n\n{texto}")
-            print(f"✅ Resultado:\n{resposta}")
-            resultados.append(f"📄 {arquivo}\n{resposta}")
+            artigos_relevantes = dividir_por_artigos_relevantes(texto)
+            respostas_arquivo = []
+            for i, artigo in enumerate(artigos_relevantes):
+                resposta = consultar_llm(artigo)
+                respostas_arquivo.append(f"Trecho {i+1}:\n{resposta}")
+            resposta_final = "\n".join(respostas_arquivo) if respostas_arquivo else "Nenhum ato relevante encontrado."
+            print(f"Resultado: {resposta_final}")
+            resultados.append(f"{arquivo}\n{resposta_final}")
     return resultados
+
 
 def download_pdf_requests(edicoes, pasta_destino, max_tentativas=3, intervalo=5):
     data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
@@ -134,18 +101,18 @@ def download_pdf_requests(edicoes, pasta_destino, max_tentativas=3, intervalo=5)
 
                 with open(destino, "wb") as f:
                     f.write(response.content)
-                print(f"✅ PDF baixado: {destino}")
+                print(f"PDF baixado: {destino}")
                 sucesso = True
 
             except requests.exceptions.Timeout:
-                print(f"⏰ Timeout ao tentar baixar: {url}")
+                print(f"Timeout ao tentar baixar: {url}")
             except requests.exceptions.ConnectionError:
-                print(f"❌ Erro de conexão ao acessar: {url}")
+                print(f"Erro de conexão ao acessar: {url}")
             except requests.exceptions.HTTPError as e:
-                print(f"⚠️ Erro HTTP ({e.response.status_code}) ao baixar: {url}")
+                print(f"Erro HTTP ({e.response.status_code}) ao baixar: {url}")
                 break  # se for 404 ou 500, não adianta tentar de novo
             except requests.exceptions.RequestException as e:
-                print(f"🚫 Erro inesperado ao baixar {url}: {e}")
+                print(f"Erro inesperado ao baixar {url}: {e}")
             
             tentativas += 1
             if not sucesso and tentativas < max_tentativas:
@@ -153,7 +120,7 @@ def download_pdf_requests(edicoes, pasta_destino, max_tentativas=3, intervalo=5)
                 time.sleep(intervalo)
 
         if not sucesso:
-            print(f"❌ Falha ao baixar após {max_tentativas} tentativas: {url}")
+            print(f"Falha ao baixar após {max_tentativas} tentativas: {url}")
 
 def run(playwright):
     browser = playwright.chromium.launch(headless=True)
@@ -200,8 +167,8 @@ def enviar_email(conteudo):
     assunto = f"Nomeações e Exonerações - Diário Oficial {data}"
     msg = MIMEMultipart()
     msg["From"] = "bot.diario.lf@gmail.com"
-    # msg["To"] = "dtic-secad@laurodefreitas.ba.gov.br"
-    msg["To"] = "albanolucas23@gmail.com"
+    msg["To"] = "dtic-secad@laurodefreitas.ba.gov.br"
+    # msg["To"] = "albanolucas23@gmail.com"
     msg["Subject"] = assunto
 
     corpo = "\n\n---\n\n".join(conteudo) if conteudo else "Nenhuma nomeação ou exoneração encontrada."
@@ -213,16 +180,16 @@ def enviar_email(conteudo):
         servidor.login("bot.diario.lf@gmail.com", os.getenv("EMAIL_SENHA"))
         servidor.sendmail(msg["From"], msg["To"], msg.as_string())
         servidor.quit()
-        print("📧 E-mail enviado com sucesso!")
+        print("E-mail enviado com sucesso!")
     except Exception as e:
         print(f"Erro ao enviar e-mail: {e}")
 
-# @app.task
-# def run_full_process():
-with sync_playwright() as playwright:
-    edicoes = run(playwright)
-    print(f"🗂️ Edições encontradas: {edicoes}")
-    download_pdf_requests(edicoes, PASTA_PDFS)
-    resultados = processar_diarios_com_llm()
-    enviar_email(resultados)
-    # apagar_arquivos_pasta(PASTA_PDFS)
+@app.task
+def run_full_process():
+    with sync_playwright() as playwright:
+        edicoes = run(playwright)
+        print(f"Edições encontradas: {edicoes}")
+        download_pdf_requests(edicoes, PASTA_PDFS)
+        resultados = processar_diarios_com_llm()
+        enviar_email(resultados)
+        apagar_arquivos_pasta(PASTA_PDFS)
