@@ -23,3 +23,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import dotenv
 import locale
+from celery_config import app
+from openai import OpenAI
+import logging
