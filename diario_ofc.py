@@ -23,7 +23,6 @@ def consultar_llm(prompt):
                     "Ignore qualquer conteúdo que não esteja claramente relacionado a esses atos.\n"
                     "Para cada ocorrência encontrada, retorne no formato:\n"
                     "Nome: [NOME COMPLETO] - Secretaria: [SECRETARIA] - Ato: [NOMEAÇÃO | EXONERAÇÃO | RETIFICAÇÃO]\n"
-                    "Caso não haja nenhum ato, diga explicitamente: 'Nenhum ato identificado neste trecho.'"
                 },
                 {"role": "user", "content": f"Texto para análise:\n{prompt}"}
             ],
@@ -110,7 +109,7 @@ def download_pdf_requests(edicoes, pasta_destino, max_tentativas=3, intervalo=5)
                 print(f"Erro de conexão ao acessar: {url}")
             except requests.exceptions.HTTPError as e:
                 print(f"Erro HTTP ({e.response.status_code}) ao baixar: {url}")
-                break  # se for 404 ou 500, não adianta tentar de novo
+                break  
             except requests.exceptions.RequestException as e:
                 print(f"Erro inesperado ao baixar {url}: {e}")
             
