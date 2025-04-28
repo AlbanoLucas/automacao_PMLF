@@ -60,6 +60,7 @@ coverage.xml
 
 # IDEs and editors
 .vscode/
+.vs
 .idea/
 *.sublime-project
 *.sublime-workspace
