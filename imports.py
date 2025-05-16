@@ -25,3 +25,4 @@ import dotenv
 import locale
 from openai import OpenAI
 import logging
+from celery_config import app
