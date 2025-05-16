@@ -17,12 +17,13 @@ def consultar_llm(prompt):
                 {"role": "system", "content":
                     "Você é um especialista em atos administrativos do Diário Oficial.\n"
                     "Sua tarefa é identificar exclusivamente:\n"
-                    "- Nomeações (ex: nomeado, nomeada, designado, admitido)\n"
+                    "- Nomeações (so considerar nomeações que sigam este exemplo: nome da pessoa seguida do termo 'no cargo em comissão de')\n"
+                    "Ignorar nomeações que sejam para compor alguma comissão.\n"
                     "- Exonerações (ex: exonerado, exonerada, dispensado, desligado)\n"
-                    "- Retificações (ex: corrigido, alterado, ajustado)\n\n"
+                    "- Tornar sem efeito se refere ao cancelamento de uma nomeação ou exoneração, retorne tambem os nomes relacionados a este ato identificando se retroage nomeação ou exoneração (ex: 'TORNAR SEM EFEITO, a exoneração', 'TORNAR SEM EFEITO, a nomeação')\n\n"
                     "Ignore qualquer conteúdo que não esteja claramente relacionado a esses atos.\n"
                     "Para cada ocorrência encontrada, retorne no formato:\n"
-                    "Nome: [NOME COMPLETO] - Secretaria: [SECRETARIA] - Ato: [NOMEAÇÃO | EXONERAÇÃO | RETIFICAÇÃO]\n"
+                    "Nome: [NOME COMPLETO] - Secretaria: [SECRETARIA] - Ato: [NOMEAÇÃO | EXONERAÇÃO | TORNAR SEM EFEITO]\n"
                 },
                 {"role": "user", "content": f"Texto para análise:\n{prompt}"}
             ],
@@ -36,8 +37,7 @@ def mover_arquivos_pasta(pasta_origem, pasta_destino):
     if not os.path.exists(pasta_origem):
         print(f"A pasta '{pasta_origem}' não existe.")
         return
-
-    # Cria a pasta de destino, se não existir
+    
     os.makedirs(pasta_destino, exist_ok=True)
 
     for arquivo in os.listdir(pasta_origem):
@@ -52,37 +52,52 @@ def mover_arquivos_pasta(pasta_origem, pasta_destino):
 
 def extrair_texto_pdf(caminho_pdf):
     texto = ""
+    tabelas = []
     with pdfplumber.open(caminho_pdf) as pdf:
         for page in pdf.pages:
-            texto += page.extract_text() or ""
-            texto += "\n"
-    return texto
+            texto_pagina = page.extract_text() or ""
+            texto += texto_pagina + "\n"
+            for table in page.extract_tables():
+                if table:
+                    tabela_texto = "\n".join(["\t".join(filter(None, row)) for row in table if any(row)])
+                    tabelas.append(tabela_texto)
+                    texto += f"\n[TABELA]\n{tabela_texto}\n"
+    return texto, tabelas
 
-def dividir_por_artigos_relevantes(texto):
-    artigos = re.split(r"\n?Art\.\s*\d+[\u00bao]?[.\s]", texto)
+
+def dividir_por_artigos_relevantes(texto, tabelas):
+    artigos = re.split(r"\n?ART\.?\s*\d+[ºo]?\.?\s*", texto, flags=re.IGNORECASE)
     artigos_filtrados = []
+
     for artigo in artigos:
         trecho = artigo.strip()
-        if any(palavra in trecho.lower() for palavra in ["exoner", "nomea", "retific", "designad"]):
+        if re.search(r"\b(exoner|nomea|TORNA SEM EFEITO)[a-z]*[ãa]?[oõ]?\b", trecho, re.IGNORECASE):
+            for tabela in tabelas:
+                if tabela in trecho:
+                    trecho += f"\n[TABELA]\n{tabela}"
             artigos_filtrados.append("Art. " + trecho)
     return artigos_filtrados
 
-def processar_diarios_com_llm():
+
+def processar_diarios_com_llm(pasta_pdfs=PASTA_PDFS):
     resultados = []
-    for arquivo in os.listdir(PASTA_PDFS):
+    for arquivo in os.listdir(pasta_pdfs):
         if arquivo.lower().endswith(".pdf"):
-            caminho = os.path.join(PASTA_PDFS, arquivo)
+            caminho = os.path.join(pasta_pdfs, arquivo)
             print(f"Processando: {arquivo}")
-            texto = extrair_texto_pdf(caminho)
-            artigos_relevantes = dividir_por_artigos_relevantes(texto)
+            texto, tabelas = extrair_texto_pdf(caminho)
+            artigos_relevantes = dividir_por_artigos_relevantes(texto, tabelas)
             respostas_arquivo = []
+
             for i, artigo in enumerate(artigos_relevantes):
                 resposta = consultar_llm(artigo)
                 respostas_arquivo.append(f"Trecho {i+1}:\n{resposta}")
+
             resposta_final = "\n".join(respostas_arquivo) if respostas_arquivo else "Nenhum ato relevante encontrado."
             print(f"Resultado: {resposta_final}")
             resultados.append(f"{arquivo}\n{resposta_final}")
     return resultados
+
 
 def download_pdf_requests(edicoes, pasta_destino, max_tentativas=3, intervalo=5):
     data = (datetime.now() - timedelta(days=1)).strftime('%Y_%m_%d')
@@ -171,9 +186,8 @@ def enviar_email(conteudo):
 
     assunto = f"Nomeações e Exonerações - Diário Oficial {data}"
     msg = MIMEMultipart()
-    msg["From"] = "bot.diario.lf@gmail.com"
-    msg["To"] = "dtic-secad@laurodefreitas.ba.gov.br"
-    # msg["To"] = "albanolucas23@gmail.com"
+    msg["From"] = os.getenv("From")
+    msg["To"] = os.getenv("To")
     msg["Subject"] = assunto
 
     corpo = "\n\n---\n\n".join(conteudo) if conteudo else "Nenhuma nomeação ou exoneração encontrada."
