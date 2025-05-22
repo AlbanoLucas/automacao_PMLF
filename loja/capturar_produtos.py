@@ -83,7 +83,7 @@ for element in elements:
         actions.move_to_element(element).click().perform()
         time.sleep(1)
 
-        nome = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "fbits-produto-nome"))).text
+        nome = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "fbits-produto-nome"))).text 
         sku = driver.find_element(By.CLASS_NAME, "fbits-sku").text
         precos = driver.find_elements(By.XPATH, "//*[@id='imagem-pagina-produto']/div[1]/div")
         
