@@ -12,6 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import pyautogui
 import win32gui
 import pyperclip
+import json
 
 
 def copiar_para_area_transferencia(texto):
@@ -94,58 +95,32 @@ def extrair_dados_loja():
     diretorio_base = os.path.join(os.getcwd(), "loja")
     dados_produtos = []
 
-    # Padrão ajustado para capturar até "REF", "_" ou o final da linha
-    padrao_nome = r"Nome:\s*(.+?)(?:\s+REF|\s+_|$)"
-    padrao_sku = r"SKU:\s*SKU\s*([A-Za-z0-9\-]+)"
-    padrao_preco_normal = r"Preço Normal:\s*R\$\s*([\d\.,]+)"
-    padrao_preco_desconto = r"Preço com Desconto:\s*(.+)"
-
     if not os.path.isdir(diretorio_base):
         print(f"Erro: A pasta '{diretorio_base}' não foi encontrada.")
         return []
 
     for root, dirs, files in os.walk(diretorio_base):
-        if "info.txt" in files:
-            caminho_arquivo = os.path.join(root, "info.txt")
+        if "info.json" in files:
+            caminho_arquivo = os.path.join(root, "info.json")
 
             try:
                 with open(caminho_arquivo, "r", encoding="utf-8") as f:
-                    conteudo = f.read()
+                    data = json.load(f)  # ✅ carrega o dicionário diretamente
 
-                    nome = re.search(padrao_nome, conteudo)
-                    sku = re.search(padrao_sku, conteudo)
-                    preco_normal = re.search(padrao_preco_normal, conteudo)
-                    preco_desconto = re.search(padrao_preco_desconto, conteudo)
+                    # Adiciona as imagens associadas ao produto
+                    imagens = [
+                        os.path.join(root, file)
+                        for file in files
+                        if file.lower().endswith(('.jpg', '.png', '.jpeg'))
+                    ]
 
-                    # Tratamento do nome: separar e juntar sem a última posição
-                    if nome:
-                        nome = nome.group(1)
-                        nome_partes = nome.split()
-                        nome = " ".join(nome_partes[:-1])  # Junta sem a última parte
-                    else:
-                        nome = conteudo.strip()  # Retorna o texto completo se não encontrar o padrão
+                    # Adiciona a lista de imagens ao dicionário
+                    data["imagens"] = imagens
 
-                    # Tratamento do SKU: separar e pegar a última posição
-                    if sku:
-                        sku = sku.group(1)
-                        sku = sku.split()[-1]  # Pega apenas a última parte
-                    else:
-                        sku = conteudo.strip()  # Retorna o texto completo se não encontrar o padrão
+                    dados_produtos.append(data)
 
-                    preco_normal = preco_normal.group(1) if preco_normal else "N/A"
-                    preco_desconto = preco_desconto.group(1) if preco_desconto else "N/A"
-
-                    imagens = [os.path.join(root, file) for file in files if file.lower().endswith(('.jpg', '.png', '.jpeg'))]
-
-                    dados_produtos.append({
-                        "nome": nome,
-                        "sku": sku,
-                        "preco_normal": preco_normal,
-                        "preco_desconto": preco_desconto,
-                        "imagens": imagens
-                    })
             except Exception as e:
-                print(f"Erro ao ler o arquivo 'info.txt' na pasta '{os.path.basename(root)}': {e}")
+                print(f"Erro ao ler o arquivo 'info.json' na pasta '{os.path.basename(root)}': {e}")
 
     return dados_produtos
 
