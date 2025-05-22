@@ -10,11 +10,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+import json
 
 def webdriver_setup():
     extension_path = r'c:\Users\Albano\AppData\Local\Google\Chrome\User Data\Default\Extensions\dcngeagmmhegagicpcmpinaoklddcgon\2.17.0_0'
     chrome_options = Options()
     chrome_options.add_argument(f'--load-extension={extension_path}')
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--headless") 
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chrome_options)
     wait = WebDriverWait(driver, 10, poll_frequency=2)
     return driver, wait
@@ -50,14 +53,18 @@ def create_product_folder(nome):
     return product_path
 
 def save_product_info(folder_name, nome, sku, preco_normal, preco_desconto):
-    file_path = os.path.join(folder_name, "info.txt")
+    file_path = os.path.join(folder_name, "info.json")  # Agora salva como .json
+    nome = nome.split()
+    nome_formatado = ' '.join(nome[:-2])
+    data = {
+        'nome': nome_formatado,
+        'sku': sku,
+        'preco_normal': preco_normal,
+        'preco_desconto': preco_desconto
+    }
     try:
         with open(file_path, 'w', encoding='utf-8') as file:
-            file.write(f"""Nome: {nome}\n
-                        SKU: {sku}\n
-                        Preço Normal: {preco_normal}\n
-                        Preço com Desconto: {preco_desconto}\n
-                        """)
+            json.dump(data, file, ensure_ascii=False, indent=4)
         print(f"Informações salvas em: {file_path}")
     except Exception as e:
         print(f"Erro ao salvar informações do produto ({nome}): {e}")
